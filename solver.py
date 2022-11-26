@@ -8,7 +8,9 @@ import numpy as np
 import os
 import time
 import datetime
-
+from torch.backends import cudnn
+from PIL import Image
+from torchvision import transforms as T
 
 class Solver(object):
     """Solver for training and testing StarGAN."""
@@ -532,22 +534,27 @@ class Solver(object):
             data_loader = self.rafd_loader
         
         with torch.no_grad():
-            for i, (x_real, c_org) in enumerate(data_loader):
-
-                # Prepare input images and target domain labels.
-                x_real = x_real.to(self.device)
-                c_trg_list = self.create_labels(c_org, self.c_dim, self.dataset, self.selected_attrs)
-
-                # Translate images.
-                x_fake_list = [x_real]
-                for c_trg in c_trg_list:
-                    x_fake_list.append(self.G(x_real, c_trg))
-
-                # Save the translated images.
-                x_concat = torch.cat(x_fake_list, dim=3)
-                result_path = os.path.join(self.result_dir, '{}-images.jpg'.format(i+1))
-                save_image(self.denorm(x_concat.data.cpu()), result_path, nrow=1, padding=0)
-                print('Saved real and fake images into {}...'.format(result_path))
+            i = 0;
+            Imag = Image.open("/content/stargan/data/celeba/images/000071.jpg")
+            transform = []
+            transform.append(T.CenterCrop(178))
+            transform.append(T.Resize(128))
+            transform.append(T.ToTensor())
+            transform.append(T.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)))
+            transform = T.Compose(transform)
+            Img = transform(Imag)
+            Img = Img.float().unsqueeze(0)
+            x_real = Img.cuda()
+            c_org = torch.cuda.FloatTensor([[0,0,0,0,1]])
+            x_real = x_real.to(self.device)
+            x_fake_list = [x_real]
+            c_trg_list = self.create_labels(c_org, self.c_dim, self.dataset, self.selected_attrs)
+            for c_trg in c_trg_list:
+              x_fake_list.append(self.G(x_real, c_trg))
+            for num, k in enumerate(x_fake_list):
+              result_path = os.path.join(self.result_dir, '{}-images.jpg'.format((i)*9+num))
+              save_image(self.denorm(k.data.cpu()), result_path, nrow=1, padding=0)
+              print('Saved real and fake images into {}...'.format(result_path))
 
     def test_multi(self):
         """Translate images using StarGAN trained on multiple datasets."""
