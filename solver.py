@@ -544,8 +544,8 @@ class Solver(object):
             transform = T.Compose(transform)
             Img = transform(Imag)
             Img = Img.float().unsqueeze(0)
-            x_real = Img.cuda()
-            c_org = torch.cuda.FloatTensor([[0,0,0,0,1]])
+            x_real = Img
+            c_org = torch.FloatTensor([[0,0,0,0,1]])
             x_real = x_real.to(self.device)
             x_fake_list = [x_real]
             c_trg_list = self.create_labels(c_org, self.c_dim, self.dataset, self.selected_attrs)
